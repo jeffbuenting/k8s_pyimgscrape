@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: scrape-nfs-pv
+  labels: 
+    volume-type: nfs
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    server: 192.168.1.23
+    path: /mnt/DroboFS/Shares/Containers/pyimgscrape
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: scrape-nfs-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: manual
+  resources:
+    requests:
+      storage: 100Mi
+  selector: 
+    matchLabels: 
+      volume-type: nfs
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: importdata
+spec:
+  selector:
+    matchLabels:
+      app: importdata
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: importdata
+        version: v1
+    spec:
+      volumes:
+        - name: scrapestorage
+          persistentVolumeClaim:
+            claimName: scrape-nfs-pvc
+      containers:
+        - name: api
+          image: jeffbuenting/k8s_imgscrape_importdata:main
+          imagePullPolicy: Always
+          env:
+            - name: INPUTFILE
+              value: "/mnt/scrapedata/input.csv"
+          volumeMounts:
+            - mountPath: "/mnt/scrapedata"
+              name: scrapestorage
