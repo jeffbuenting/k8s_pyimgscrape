@@ -49,12 +49,16 @@ spec:
           persistentVolumeClaim:
             claimName: scrape-nfs-pvc
       containers:
-        - name: api
+        - name: importdata
           image: jeffbuenting/k8s_imgscrape_importdata:main
           imagePullPolicy: Always
           env:
             - name: INPUTFILE
               value: "/mnt/scrapedata/input.csv"
+            - name: BROKERHOST
+              value: "mqtt.default"
+            - name: PORT
+              value: "1883"
           volumeMounts:
             - mountPath: "/mnt/scrapedata"
               name: scrapestorage

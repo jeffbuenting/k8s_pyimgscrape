@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mqtt
+spec:
+  ports:
+  - port: 1883
+    targetPort: 1883
+    protocol: TCP
+  selector:
+    name: mqtt
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mqttlogs-nfs-pv
+  labels: 
+    volume-type: nfs
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteOnce
+  nfs:
+    server: 192.168.1.23
+    path: /mnt/DroboFS/Shares/Containers/mqtt
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mqttlogs-nfs-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  resources:
+    requests:
+      storage: 100Mi
+  selector: 
+    matchLabels: 
+      volume-type: nfs
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqtt
+spec:
+  selector:
+    matchLabels:
+      app: mqtt
+  template:
+    metadata:
+      labels:
+        app: mqtt
+    spec:
+      volumes:
+        - name: mqttstorage
+          persistentVolumeClaim:
+            claimName: mqttlogs-nfs-pvc
+      containers:
+        - name: mqtt
+          image: jeffbuenting/k8s_mqtt:main
+          imagePullPolicy: Always
+          volumeMounts:
+            - mountPath: "/mosquitto/log"
+              name: mqttstorage
